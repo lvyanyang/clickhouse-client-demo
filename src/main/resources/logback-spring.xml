@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--日志级别从低到高分为ALL < TRACE < DEBUG < INFO < WARN < ERROR < OFF，如果设置为WARN，则低于WARN的信息都不会输出-->
+<configuration>
+    <!--region 配置属性-->
+    <!--读取spring配置-->
+    <springProperty scope="context" name="LOG_ROOT" source="logging.file.path" defaultValue="logs"/>
+    <!--日志目录-->
+    <property name="LOG_DIR" value="${LOG_ROOT}"/>
+    <!--文件编码-->
+    <property name="LOG_CHARSET" value="UTF-8"/>
+    <!--每个文件大小-->
+    <property name="LOG_MAX_FILES_IZE" value="3MB"/>
+    <!--保留文件数-->
+    <property name="LOG_MAX_HISTORY" value="100"/>
+    <!--保留总文件大小-->
+    <property name="LOG_TOTAL_SIZE_CAP" value="10GB"/>
+    <!--控制台日志颜色渲染依赖类-->
+    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter"/>
+    <conversionRule conversionWord="wex" converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter"/>
+    <conversionRule conversionWord="wEx" converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter"/>
+    <!--控制台日志输出格式-->
+    <property name="LOG_CONSOLE_PATTERN"
+              value="${consolePattern:-%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"/>
+    <!--文件日志输出格式-->
+    <property name="LOG_FILE_PATTERN"
+              value="${filePattern:-%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } --- [%15.15t] %-40.40logger{39} : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"/>
+    <!--endregion-->
+
+    <!--region 控制台日志输出组件-->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <charset>${LOG_CHARSET}</charset>
+            <pattern>${LOG_CONSOLE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+    <!--endregion-->
+
+    <!--region 日志文件输出组件-->
+    <appender name="ALL_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder>
+            <charset>${LOG_CHARSET}</charset>
+            <pattern>${LOG_FILE_PATTERN}</pattern>
+        </encoder>
+        <file>${LOG_DIR}/all.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!--指定文件路径按每天生成,如果每个文件超过指定大小,使用日期+序号递增-->
+            <fileNamePattern>${LOG_DIR}/all-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <!--指定活动文件最大值，文件大小超过这个值将产生新文件-->
+            <maxFileSize>${LOG_MAX_FILES_IZE}</maxFileSize>
+            <!--指定保留最近文件的数量-->
+            <maxHistory>${LOG_MAX_HISTORY}</maxHistory>
+            <!--指定日志文件的上限大小，如果日志文件总大小到了这个值，就会删除旧的日志-->
+            <totalSizeCap>${LOG_TOTAL_SIZE_CAP}</totalSizeCap>
+            <!--在系统启动时检查是否有需要删除的日志文件，如果有将异步进行删除-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+    </appender>
+    <!--endregion-->
+
+    <!--region 错误日志文件输出组件-->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder>
+            <charset>${LOG_CHARSET}</charset>
+            <pattern>${LOG_FILE_PATTERN}</pattern>
+        </encoder>
+        <file>${LOG_DIR}/error.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!--指定文件路径按每天生成,如果每个文件超过指定大小,使用日期+序号递增-->
+            <fileNamePattern>${LOG_DIR}/error-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <!--指定活动文件最大值，文件大小超过这个值将产生新文件-->
+            <maxFileSize>${LOG_MAX_FILES_IZE}</maxFileSize>
+            <!--指定保留最近文件的数量-->
+            <maxHistory>${LOG_MAX_HISTORY}</maxHistory>
+            <!--指定日志文件的上限大小，如果日志文件总大小到了这个值，就会删除旧的日志-->
+            <totalSizeCap>${LOG_TOTAL_SIZE_CAP}</totalSizeCap>
+            <!--在系统启动时检查是否有需要删除的日志文件，如果有将异步进行删除-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+    </appender>
+    <!--endregion-->
+
+    <!--region 自定义输出级别-->
+    <!--logger设置某一个包或者具体的某一个类的日志打印级别以及指定appender，如果不指定appender，它会继承root节点中定义的那些appender，logger有以下属性：-->
+    <!--name:指定具体的某一个包或者具体的某一个类  level:设置打印级别，不区分大小写，如果未设置，将会继承上级的级别 additivity: 是否向上级继续传递写入操作，如果为true，除了当前appender中指定的输出，同时还会输出在root中定义的appender，默认是true。-->
+    <logger name="org.apache.catalina.core" level="warn"/>
+    <logger name="org.hibernate.validator.internal.util.Version" level="warn"/>
+    <logger name="org.springframework.boot.web.embedded.tomcat.TomcatWebServer" level="warn"/>
+    <logger name="org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext" level="warn"/>
+    <logger name="org.springframework.web.servlet.DispatcherServlet" level="warn"/>
+
+    <springProfile name="dev">
+    </springProfile>
+    <!--endregion-->
+
+    <!--region ROOT输出目标-->
+    <root level="info">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ALL_FILE"/>
+        <!-- <appender-ref ref="ERROR_FILE"/> -->
+    </root>
+    <!--endregion-->
+</configuration>

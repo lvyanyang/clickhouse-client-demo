@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.5</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    <groupId>com.example</groupId>
+    <artifactId>clickhouse-client-demo</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>clickhouse-client-demo</name>
+    <description>clickhouse-client-demo</description>
+    <properties>
+        <java.version>21</java.version>
+        <clickhouse-java.version>0.7.0</clickhouse-java.version>
+        <lz4.version>1.8.0</lz4.version>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <artifactId>asm</artifactId>
+                    <groupId>org.ow2.asm</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/cn.hutool/hutool-core -->
+        <!-- 核心，包括Bean操作、日期、各种Util等 -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-core</artifactId>
+            <version>5.8.33</version>
+        </dependency>
+
+        <!-- For parsing DB text formats -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.11.0</version>
+        </dependency>
+
+        <!-- client方式需要添加这个依赖 -->
+        <dependency>
+            <groupId>com.clickhouse</groupId>
+            <artifactId>client-v2</artifactId>
+            <version>${clickhouse-java.version}</version>
+        </dependency>
+
+        <!--
+         lz4-pure-java：纯 Java 实现，跨平台，易于集成和部署，性能适中。
+         lz4-java：混合实现，使用 JNI 调用 C 语言编写的 LZ4 库，性能高，但部署复杂度较高
+         -->
+        <!-- 要求服务器安装:yum install lz4-devel -->
+        <!-- 验证安装: ldconfig -p | grep lz4 -->
+        <!-- <dependency> -->
+        <!-- 	<groupId>org.lz4</groupId> -->
+        <!-- 	<artifactId>lz4-java</artifactId> -->
+        <!-- 	<version>${lz4.version}</version> -->
+        <!-- </dependency> -->
+
+        <!-- <dependency> -->
+        <!-- 	<groupId>org.lz4</groupId> -->
+        <!-- 	<artifactId>lz4-pure-java</artifactId> -->
+        <!-- 	<version>${lz4.version}</version> -->
+        <!-- </dependency> -->
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
