@@ -8,6 +8,7 @@ import cn.hutool.core.date.DateUtil;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
@@ -23,6 +24,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.TimeZone;
 
+/**
+ * Json操作类
+ */
 @Slf4j
 public class JsonHelper {
     private static ObjectMapper _objectMapper;
@@ -52,7 +56,7 @@ public class JsonHelper {
      */
     public static final String Empty = "";
 
-
+    /** 获取ObjectMapper对象 */
     public static ObjectMapper getObjectMapper() {
         if (_objectMapper == null) {
             _objectMapper = new ObjectMapper();
@@ -72,17 +76,16 @@ public class JsonHelper {
             // 时间格式化
             _objectMapper.setTimeZone(TimeZone.getTimeZone(GMT8));
             _objectMapper.setDateFormat(new SimpleDateFormat(DEFAULT_DATETIME_PATTERN));
-
             JavaTimeModule javaTimeModule = new JavaTimeModule();
 
-            //region 序列化
+            //region 注册序列化
             javaTimeModule.addSerializer(ZonedDateTime.class, new ZonedDateTimeSerializer(DateTimeFormatter.ofPattern(DEFAULT_DATETIME_PATTERN)));
             javaTimeModule.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer(DateTimeFormatter.ofPattern(DEFAULT_DATETIME_PATTERN)));
             javaTimeModule.addSerializer(LocalDate.class, new LocalDateSerializer(DateTimeFormatter.ofPattern(DEFAULT_DATE_PATTERN)));
             javaTimeModule.addSerializer(LocalTime.class, new LocalTimeSerializer(DateTimeFormatter.ofPattern(DEFAULT_TIME_PATTERN)));
             //endregion
 
-            //region 反序列化
+            //region 注册反序列化
             javaTimeModule.addDeserializer(ZonedDateTime.class, new JsonDeserializer<>() {
                 @Override
                 public ZonedDateTime deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
@@ -113,12 +116,18 @@ public class JsonHelper {
                     return DateUtil.parse(p.getText()).toJdkDate();
                 }
             });
+            //endregion
 
             _objectMapper.registerModule(javaTimeModule);
         }
         return _objectMapper;
     }
 
+    /**
+     * 把对象转为Json字符串
+     * @param object   对象
+     * @param isPretty 是否美化
+     */
     public static String toJsonString(Object object, boolean isPretty) {
         if (object == null) return Empty;
         String jsonString = Empty;
@@ -130,8 +139,74 @@ public class JsonHelper {
                 jsonString = mapper.writeValueAsString(object);
             }
         } catch (JsonProcessingException e) {
-            log.error("对象转为json字符串时出错", e);
+            log.error("对象转为json字符串时出错,{}", e.getMessage(), e);
         }
         return jsonString;
+    }
+
+    /**
+     * Json字符串转对象
+     */
+    public static <T> T toJsonObject(String data, Class<T> c) {
+        try {
+            return getObjectMapper().readValue(data, c);
+        } catch (IOException e) {
+            log.error("将json字符转换为对象时失败,{}", e.getMessage(), e);
+        }
+        return null;
+    }
+
+    /**
+     * Json字符串转对象
+     */
+    public static <T> T toJsonObject(String data, JavaType valueType) {
+        try {
+            return getObjectMapper().readValue(data, valueType);
+        } catch (IOException e) {
+            log.error("将json字符转换为对象时失败,{}", e.getMessage(), e);
+        }
+        return null;
+    }
+
+    /**
+     * Json字符串转对象
+     * <code>
+     *     List<Map<String,Object>> list = toJsonObject(data);
+     *     Map<String,Object> map = toJsonObject(data);
+     * </code>
+     */
+    public static <T> T toJsonObject(String data) {
+        try {
+            return getObjectMapper().readValue(data, new TypeReference<>() {});
+        } catch (IOException e) {
+            log.error("将json字符转换为对象时失败,{}", e.getMessage(), e);
+        }
+        return null;
+    }
+
+    /**
+     * Json字符串转集合对象
+     */
+    public static <T> T toJsonListObject(String data, Class<?> listClass, Class<?> elementClass) {
+        try {
+            return getObjectMapper().readValue(data, getJsonCollectionType(listClass, elementClass));
+        } catch (IOException e) {
+            throw new RuntimeException("将json字符转换为对象时失败!", e);
+        }
+    }
+
+    /**
+     * Json字符串转Map对象
+     */
+    public static <T> T toJsonMapObject(String data, Class<?> collectionClass, Class<?> keyClass, Class<?> elementClass) {
+        try {
+            return getObjectMapper().readValue(data, getJsonCollectionType(collectionClass, keyClass, elementClass));
+        } catch (IOException e) {
+            throw new RuntimeException("将json字符转换为对象时失败!", e);
+        }
+    }
+
+    private static JavaType getJsonCollectionType(Class<?> collectionClass, Class<?>... elementClasses) {
+        return getObjectMapper().getTypeFactory().constructParametricType(collectionClass, elementClasses);
     }
 }

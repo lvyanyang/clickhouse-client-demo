@@ -14,7 +14,7 @@ import com.clickhouse.client.api.query.QuerySettings;
 import com.clickhouse.client.api.query.Records;
 import com.clickhouse.data.ClickHouseFormat;
 import com.example.clickhouseclientdemo.entity.GpsLog;
-import com.example.clickhouseclientdemo.utils.ClientHelper;
+import com.example.clickhouseclientdemo.utils.ProjectHelper;
 import com.example.clickhouseclientdemo.utils.JsonHelper;
 import com.fasterxml.jackson.databind.MappingIterator;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +42,9 @@ public class GpsService {
 
     public GpsService(Client client) {
         this.client = client;
-        gpsLogSchema = this.client.getTableSchema(ClientHelper.GPS_TABLE_NAME);
+        // 获取表架构对象
+        gpsLogSchema = this.client.getTableSchema(ProjectHelper.GPS_TABLE_NAME);
+        // 注册实体类,把实体字段与表架构建立映射关系
         this.client.register(GpsLog.class, gpsLogSchema);
     }
 
@@ -52,8 +54,8 @@ public class GpsService {
     public void insertList(List<GpsLog> list) {
         long startNanoTime = System.nanoTime();
         log.info("开始将List集合写入到ClickHouse");
-        try (InsertResponse response = client.insert(ClientHelper.GPS_TABLE_NAME, list).get(10, TimeUnit.SECONDS)) {
-            ClientHelper.logInsertStat(startNanoTime, response);
+        try (InsertResponse response = client.insert(ProjectHelper.GPS_TABLE_NAME, list).get(10, TimeUnit.SECONDS)) {
+            ProjectHelper.logInsertStat(startNanoTime, response);
         } catch (Exception e) {
             log.error("写入List失败 {}", e.getMessage(), e);
         }
@@ -64,10 +66,10 @@ public class GpsService {
      */
     public void insertCSV() {
         long startNanoTime = System.nanoTime();
-        log.info("读取文件:{},开始写入", ClientHelper.CSV_PATH);
-        try (FileInputStream fileInputStream = new FileInputStream(ClientHelper.CSV_PATH);
-             InsertResponse response = client.insert(ClientHelper.GPS_TABLE_NAME, fileInputStream, ClickHouseFormat.CSVWithNames).get(10, TimeUnit.SECONDS)) {
-            ClientHelper.logInsertStat(startNanoTime, response);
+        log.info("读取文件:{},开始写入", ProjectHelper.CSV_PATH);
+        try (FileInputStream fileInputStream = new FileInputStream(ProjectHelper.CSV_PATH);
+             InsertResponse response = client.insert(ProjectHelper.GPS_TABLE_NAME, fileInputStream, ClickHouseFormat.CSVWithNames).get(10, TimeUnit.SECONDS)) {
+            ProjectHelper.logInsertStat(startNanoTime, response);
         } catch (Exception e) {
             log.error("写入CSV失败 {}", e.getMessage(), e);
         }
@@ -78,44 +80,50 @@ public class GpsService {
      */
     public void insertListMap(List<Map<String, String>> listMap) {
         long startNanoTime = System.nanoTime();
-        var csvString = ClientHelper.listMapToCSVByStringBuilder(listMap);
+        //把listMap集合转为csv字符串
+        var csvString = ProjectHelper.listMapToCSVByStringBuilder(listMap);
+        //把csv字符串包装成输入流
         InputStream inputStream = new ByteArrayInputStream(csvString.getBytes(StandardCharsets.UTF_8));
         var elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanoTime);
         log.info("将ListMap包装为InputStream,共耗时:{}ms", elapsed);
 
         log.info("开始将包装好的InputStream写入数据库");
         startNanoTime = System.nanoTime();
-        try (InsertResponse response = client.insert(ClientHelper.GPS_TABLE_NAME, inputStream, ClickHouseFormat.CSVWithNames).get(10, TimeUnit.SECONDS)) {
-            ClientHelper.logInsertStat(startNanoTime, response);
+        try (InsertResponse response = client.insert(ProjectHelper.GPS_TABLE_NAME, inputStream, ClickHouseFormat.CSVWithNames).get(10, TimeUnit.SECONDS)) {
+            ProjectHelper.logInsertStat(startNanoTime, response);
         } catch (Exception e) {
             log.error("写入ListMap失败 {}", e.getMessage(), e);
         }
     }
 
+    /** 查询数据,自由读取 */
     public void query() {
         var sql = "select route_id,route_name from gpslog limit 100";
         log.info("开始查询数据:{}", sql);
         long startNanoTime = System.nanoTime();
         try (QueryResponse response = client.query(sql).get(10, TimeUnit.SECONDS)) {
+            // 使用ClickHouseBinaryFormatReader读取数据
             ClickHouseBinaryFormatReader reader = client.newBinaryFormatReader(response);
             while (reader.next() != null) {
                 log.info("route_id={} route_name={}", reader.getString("route_id"), reader.getString("route_name"));
             }
-            ClientHelper.logQueryStat(startNanoTime, response);
+            ProjectHelper.logQueryStat(startNanoTime, response);
         } catch (Exception e) {
             log.error("查询数据失败 {}", e.getMessage(), e);
         }
     }
 
+    /** 查询数据返回ListMap集合 */
     public void queryListMap() {
         var sql = SQL + "limit 100";
         log.info("开始查询数据:{}", sql);
         long startNanoTime = System.nanoTime();
         try (Records response = client.queryRecords(sql).get(10, TimeUnit.SECONDS)) {
-            ClientHelper.logQueryStat(startNanoTime, response);
+            ProjectHelper.logQueryStat(startNanoTime, response);
             List<Map<String, Object>> listMap = new ArrayList<>();
             for (GenericRecord record : response) {
                 Map<String, Object> map = new HashMap<>();
+                //从表架构中获取列信息集合,遍历添加到listMap集合中
                 gpsLogSchema.getColumns().forEach(p -> map.put(p.getColumnName(), record.getObject(p.getColumnName())));
                 listMap.add(map);
             }
@@ -148,13 +156,14 @@ public class GpsService {
                 });
                 listMap.add(map);
             }
-            ClientHelper.logQueryStat(startNanoTime, response);
+            ProjectHelper.logQueryStat(startNanoTime, response);
             listMap.forEach(p -> log.info("{}", JsonHelper.toJsonString(p, false)));
         } catch (Exception e) {
             log.error("查询数据失败 {}", e.getMessage(), e);
         }
     }
 
+    /** 查询数据返回对象集合 */
     public void queryList() {
         var sql = SQL + "limit 100";
         log.info("开始查询数据:{}", sql);
@@ -170,6 +179,7 @@ public class GpsService {
         }
     }
 
+    /** 查询数据,并以字符串的形式解析为JSON格式 */
     public void queryAsJsonToObject() {
         var sql = SQL + "limit 100";
         log.info("开始查询数据:{}", sql);
@@ -182,7 +192,7 @@ public class GpsService {
                 GpsLog record = jsonIter.next();
                 list.add(record);
             }
-            ClientHelper.logQueryStat(startNanoTime, response);
+            ProjectHelper.logQueryStat(startNanoTime, response);
             for (GpsLog record : list) {
                 log.info(JsonHelper.toJsonString(record, false));
             }
@@ -191,6 +201,7 @@ public class GpsService {
         }
     }
 
+    /** 查询数据,并以字符串的形式解析为csv格式 */
     public void queryAsCSV() {
         String sql = SQL + "limit 100";
         log.info("开始查询数据表\n{}", sql);
@@ -199,7 +210,7 @@ public class GpsService {
         try (QueryResponse response = client.query(sql, settings).get(10, TimeUnit.SECONDS);
              BufferedReader reader = new BufferedReader(new InputStreamReader(response.getInputStream()));
              CSVParser parser = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).build().parse(reader)) {
-            ClientHelper.logQueryStat(startNanoTime, response);
+            ProjectHelper.logQueryStat(startNanoTime, response);
 
             log.info(String.join(",", parser.getHeaderNames()));
             for (CSVRecord record : parser) {
@@ -210,6 +221,7 @@ public class GpsService {
         }
     }
 
+    /** 查询数据,并以字符串的形式读取 */
     public void queryAsString() {
         String line;
         String sql = SQL + "limit 100 format JSONEachRow";
@@ -217,7 +229,7 @@ public class GpsService {
         long startNanoTime = System.nanoTime();
         try (QueryResponse response = client.query(sql).get(10, TimeUnit.SECONDS);
              BufferedReader reader = new BufferedReader(new InputStreamReader(response.getInputStream()))) {
-            ClientHelper.logQueryStat(startNanoTime, response);
+            ProjectHelper.logQueryStat(startNanoTime, response);
             while ((line = reader.readLine()) != null) {
                 log.info(line);
             }

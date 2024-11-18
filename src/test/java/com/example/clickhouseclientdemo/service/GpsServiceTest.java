@@ -1,6 +1,6 @@
 package com.example.clickhouseclientdemo.service;
 
-import com.example.clickhouseclientdemo.utils.ClientHelper;
+import com.example.clickhouseclientdemo.utils.ProjectHelper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -18,13 +18,13 @@ public class GpsServiceTest {
 
     @Test
     void insertList() {
-        var list = ClientHelper.readCSVToList();
+        var list = ProjectHelper.readCSVToList();
         gpsService.insertList(list);
     }
 
     @Test
     void insertMap() {
-        var listMap = ClientHelper.readCSVToListMap();
+        var listMap = ProjectHelper.readCSVToListMap();
         gpsService.insertListMap(listMap);
     }
 

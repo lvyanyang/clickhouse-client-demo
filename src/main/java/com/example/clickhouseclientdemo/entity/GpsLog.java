@@ -7,6 +7,9 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
 
+/**
+ * GPS实体对象
+ */
 @Data
 public class GpsLog {
     /** 主键 */

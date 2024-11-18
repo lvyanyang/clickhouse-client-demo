@@ -24,11 +24,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 项目帮助类
+ */
 @Slf4j
-public class ClientHelper {
+public class ProjectHelper {
+    //csv文件路径
     public static final String CSV_PATH = "/Users/lvyanyang/Desktop/tmp/gpslog_20240816.csv";
+    //操作表名
     public static final String GPS_TABLE_NAME = "gpslog";
 
+    /**
+     * 输出Insert响应结果日志
+     * @param startNanoTime 开始的纳秒数
+     * @param response      Insert响应对象
+     */
     public static void logInsertStat(long startNanoTime, InsertResponse response) {
         long duration = System.nanoTime() - startNanoTime;
         var serverWriteRows = response.getWrittenRows();
@@ -37,6 +47,11 @@ public class ClientHelper {
         log.info("服务器写入行数:{},客户端执行耗时:{}ms,服务器执行耗时:{}ms", serverWriteRows, elapsed, serverTime);
     }
 
+    /**
+     * 输出查询响应结果日志
+     * @param startNanoTime 开始的纳秒数
+     * @param response      查询响应对象
+     */
     public static void logQueryStat(long startNanoTime, QueryResponse response) {
         long duration = System.nanoTime() - startNanoTime;
         var serverReadRows = response.getReadRows();
@@ -47,6 +62,11 @@ public class ClientHelper {
         log.info("服务器读取行数:{},结果行数:{},opDuration:{},客户端执行耗时:{}ms,服务器执行耗时:{}ms", serverReadRows, resultRows, opDuration, elapsed, serverTime);
     }
 
+    /**
+     * 输出查询响应结果日志
+     * @param startNanoTime 开始的纳秒数
+     * @param response      查询响应对象
+     */
     public static void logQueryStat(long startNanoTime, Records response) {
         long duration = System.nanoTime() - startNanoTime;
         var serverReadRows = response.getReadRows();
@@ -71,6 +91,12 @@ public class ClientHelper {
         return name2.toLowerCase();
     }
 
+    /**
+     * 将List<Map<String, String>>类型的数据转换为CSV格式的字符串
+     * 此方法使用CSVPrinter来处理数据转换，确保输出的CSV格式正确
+     * @param list 包含多个Map的列表，每个Map代表CSV中的一行，Map的键为列名，值为列值
+     * @return 如果输入列表为空或null，则返回空字符串；否则返回转换后的CSV格式字符串
+     */
     public static String listMapToCSVByCSVPrinter(List<Map<String, String>> list) {
         if (list == null || list.isEmpty()) return "";
 
@@ -91,6 +117,10 @@ public class ClientHelper {
         return stringWriter.toString();
     }
 
+    /**
+     * 将List<Map<String, String>>类型的列表转换为CSV格式的字符串
+     * 此方法使用StringBuilder来构建CSV字符串，以减少字符串拼接过程中的内存消耗
+     */
     public static String listMapToCSVByStringBuilder(List<Map<String, String>> list) {
         var delimiter = ",";
         StringBuilder csvBuilder = new StringBuilder();
@@ -107,10 +137,14 @@ public class ClientHelper {
         return csvBuilder.toString();
     }
 
+    /**
+     * 加载并解析CSV记录,并把记录转为GpsLog集合
+     */
     public static List<GpsLog> readCSVToList() {
         List<GpsLog> list = new ArrayList<>();
         readCSVCore((record, headerNames) -> {
             GpsLog item = new GpsLog();
+            // 硬编码给每个字段赋值
             // item.setGpsId(new BigInteger(record.get("gps_id")));
             // item.setCmpName(record.get("cmp_name"));
             // item.setCdName(record.get("cd_name"));
@@ -132,7 +166,7 @@ public class ClientHelper {
             // item.setValidFlag(Integer.parseInt(record.get("valid_flag")));
             // item.setMilestotal(Long.parseLong(record.get("milestotal")));
             headerNames.forEach(p -> {
-                ReflectUtil.setFieldValue(item, ClientHelper.toCamelCase(p), record.get(p));
+                ReflectUtil.setFieldValue(item, ProjectHelper.toCamelCase(p), record.get(p));
             });
             list.add(item);
         });
@@ -140,6 +174,9 @@ public class ClientHelper {
         return list;
     }
 
+    /**
+     * 加载并解析CSV记录,并把记录转为Map集合
+     */
     public static List<Map<String, String>> readCSVToListMap() {
         List<Map<String, String>> list = new ArrayList<>();
         readCSVCore((record, headerNames) -> {
@@ -151,6 +188,10 @@ public class ClientHelper {
         return list;
     }
 
+    /**
+     * 解析CSV核心逻辑
+     * @param consumer 指定遍历CSV集合时每项的实际操作函数
+     */
     private static void readCSVCore(CSVConsumer consumer) {
         long startNanoTime = System.nanoTime();
         log.info("读取文件:{},开始解析CSV", CSV_PATH);
@@ -168,6 +209,9 @@ public class ClientHelper {
         }
     }
 
+    /**
+     * CSV解析消费接口
+     */
     @FunctionalInterface
     public interface CSVConsumer {
         void accept(CSVRecord record, List<String> headerNames);

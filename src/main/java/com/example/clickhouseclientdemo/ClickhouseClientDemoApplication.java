@@ -15,7 +15,7 @@ import java.time.temporal.ChronoUnit;
 public class ClickhouseClientDemoApplication {
 	@Resource private ClickHouseProperties properties;
 
-	/** CK数据库客户端对象 */
+	/** 构建CK数据库客户端对象 */
     @Bean
     public Client projectClient() {
         String endpoint = properties.getEndpoint();
