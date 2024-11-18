@@ -40,6 +40,10 @@
             <scope>test</scope>
             <exclusions>
                 <exclusion>
+                    <artifactId>xmlunit-core</artifactId>
+                    <groupId>org.xmlunit</groupId>
+                </exclusion>
+                <exclusion>
                     <artifactId>asm</artifactId>
                     <groupId>org.ow2.asm</groupId>
                 </exclusion>
