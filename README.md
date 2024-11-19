@@ -37,41 +37,40 @@ COMMENT '公交车辆GPS信息'
 # 数据类型对应关系
 官方文档：https://clickhouse.com/docs/en/integrations/java
 
-| **Data Type**       | **Wrapper Class**              | **Value Class**         | **Remark**                                      |
-| ------------------- | ------------------------------ | ----------------------- | ----------------------------------------------- |
-| Bool                | ClickHouseBoolValue            | bool                    |                                                 |
-| Date*               | ClickHouseDateValue            | java.time.LocalDate     |                                                 |
-| DateTime*           | ClickHouseDateTimeValue        | java.time.LocalDateTime | or java.time.OffsetDateTime if there's timezone |
-| Enum*               | ClickHouseEnumValue            | int                     |                                                 |
-| FixedString         | ClickHouseStringValue          | byte[]                  |                                                 |
-| Int8                | ClickHouseByteValue            | byte                    |                                                 |
-| UInt8               | UnsignedByteValue              | byte                    | or short when widen_unsigned_types=true         |
-| Int16               | ClickHouseShortValue           | short                   |                                                 |
-| UInt16              | UnsignedShortValue             | short                   | or int when widen_unsigned_types=true           |
-| Int32               | ClickHouseIntegerValue         | int                     |                                                 |
-| UInt32              | UnsignedIntegerValue           | int                     | or long when widen_unsigned_types=true          |
-| Int64               | ClickHouseLongValue            | long                    |                                                 |
-| UInt64/Interval*    | UnsignedLongValue              | long                    | or BigInteger when widen_unsigned_types=true    |
-| *Int128             | ClickHouseBigIntegerValue      | BigInteger              |                                                 |
-| *Int256             | ClickHouseBigIntegerValue      | BigInteger              |                                                 |
-| Decimal*            | ClickHouseBigDecimalValue      | BigDecimal              |                                                 |
-| Float32             | ClickHouseFloatValue           | float                   |                                                 |
-| Float64             | ClickHouseDoubleValue          | double                  |                                                 |
-| IPv4                | ClickHouseIpv4Value            | java.net.Inet4Address   |                                                 |
-| IPv6                | ClickHouseIpv6Value            | java.net.Inet6Address   |                                                 |
-| UUID                | ClickHouseUuidValue            | java.util.UUID          |                                                 |
-| Point               | ClickHouseGeoPointValue        | double[2]               |                                                 |
-| Ring                | ClickHouseGeoRingValue         | double                  |                                                 |
-| Polygon             | ClickHouseGeoPolygonValue      | double[]                |                                                 |
-| MultiPolygon        | ClickHouseGeoMultiPolygonValue | double                  |                                                 |
-| JSON/Object('json') | ClickHouseTupleValue           | java.util.List          |                                                 |
-| String              | ClickHouseStringValue          | String                  | or byte[] when use_binary_string=true           |
-| Array               | ClickHouseArrayValue           | primitive array         | or Object array when use_objects_in_array=true  |
-| Map                 | ClickHouseMapValue             | java.util.Map           |                                                 |
-| Nested              | ClickHouseNestedValue          | Object                  |                                                 |
-| Tuple               | ClickHouseTupleValue           | java.util.List          |                                                 |
-
-All wrapper classes implemented `ClickHouseValue` interface providing the ability to be converted from/to a specific Java type(e.g. via `update(String)` or `asString()`).
+| **clickhouse数据类型**  | **Java类型**              | **包装类**                       | **备注**                                          |
+|---------------------|-------------------------|-------------------------------|-------------------------------------------------|
+| Bool                | bool                    | ClickHouseBoolValue           |                                                 |
+| Date*               | java.time.LocalDate     | ClickHouseDateValue           |                                                 |
+| DateTime*           | java.time.LocalDateTime | ClickHouseDateTimeValue       | or java.time.OffsetDateTime if there's timezone |
+| DateTime64*         | java.time.OffsetDateTime | ClickHouseDateTimeValue      |                                                 |
+| Enum*               | int                     | ClickHouseEnumValue           |                                                 |
+| FixedString         | byte[]                  | ClickHouseStringValue         |                                                 |
+| Int8                | byte                    | ClickHouseByteValue           |                                                 |
+| UInt8               | short                   | UnsignedByteValue             |                                                 |
+| Int16               | short                   | ClickHouseShortValue          |                                                 |
+| UInt16              | int                     | UnsignedShortValue            |                                                 |
+| Int32               | int                     | ClickHouseIntegerValue        |                                                 |
+| UInt32              | long                    | UnsignedIntegerValue          |                                                 |
+| Int64               | long                    | ClickHouseLongValue           |                                                 |
+| UInt64/Interval*    | BigInteger              | UnsignedLongValue             |                                                 |
+| *Int128             | BigInteger              | ClickHouseBigIntegerValue     |                                                 |
+| *Int256             | BigInteger              | ClickHouseBigIntegerValue     |                                                 |
+| Decimal*            | BigDecimal              | ClickHouseBigDecimalValue     |                                                 |
+| Float32             | float                   | ClickHouseFloatValue          |                                                 |
+| Float64             | double                  | ClickHouseDoubleValue         |                                                 |
+| IPv4                | java.net.Inet4Address   | ClickHouseIpv4Value           |                                                 |
+| IPv6                | java.net.Inet6Address   | ClickHouseIpv6Value           |                                                 |
+| UUID                | java.util.UUID          | ClickHouseUuidValue           |                                                 |
+| Point               | double[2]               | ClickHouseGeoPointValue       |                                                 |
+| Ring                | double                  | ClickHouseGeoRingValue        |                                                 |
+| Polygon             | double[]                | ClickHouseGeoPolygonValue     |                                                 |
+| MultiPolygon        | double                  | ClickHouseGeoMultiPolygonValue |                                                 |
+| JSON/Object('json') | java.util.List          | ClickHouseTupleValue          |                                                 |
+| String              | String                  | ClickHouseStringValue         | or byte[] when use_binary_string=true           |
+| Array               | primitive array         | ClickHouseArrayValue          | or Object array when use_objects_in_array=true  |
+| Map                 | java.util.Map           | ClickHouseMapValue            |                                                 |
+| Nested              | Object                  | ClickHouseNestedValue         |                                                 |
+| Tuple               | java.util.List          | ClickHouseTupleValue          |                                                 |
 
 
 # gpslog.csv
