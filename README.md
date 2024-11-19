@@ -34,7 +34,7 @@ COMMENT '公交车辆GPS信息'
 ```
 
 
-# 数据类型对应关系
+# Java数据类型与ClickHouse数据类型对应关系
 官方文档：https://clickhouse.com/docs/en/integrations/java
 
 | **clickhouse数据类型**  | **Java类型**              | **包装类**                       | **备注**                                          |
