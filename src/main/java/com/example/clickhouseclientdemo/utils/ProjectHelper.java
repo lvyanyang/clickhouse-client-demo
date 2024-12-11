@@ -4,9 +4,12 @@ import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.clickhouse.client.api.insert.InsertResponse;
+import com.clickhouse.client.api.metadata.TableSchema;
 import com.clickhouse.client.api.metrics.ClientMetrics;
 import com.clickhouse.client.api.query.QueryResponse;
 import com.clickhouse.client.api.query.Records;
+import com.clickhouse.data.ClickHouseColumn;
+import com.clickhouse.data.ClickHouseDataType;
 import com.example.clickhouseclientdemo.entity.GpsLog;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
@@ -18,10 +21,8 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.Field;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -97,17 +98,17 @@ public class ProjectHelper {
      * @param list 包含多个Map的列表，每个Map代表CSV中的一行，Map的键为列名，值为列值
      * @return 如果输入列表为空或null，则返回空字符串；否则返回转换后的CSV格式字符串
      */
-    public static String listMapToCSVByCSVPrinter(List<Map<String, String>> list) {
+    public static String listMapToCSVByCSVPrinter(List<Map<String, Object>> list) {
         if (list == null || list.isEmpty()) return "";
 
         // 获取所有的列名
         List<String> headers = new ArrayList<>(list.getFirst().keySet());
         StringWriter stringWriter = new StringWriter();
         try (CSVPrinter csvPrinter = new CSVPrinter(stringWriter, CSVFormat.DEFAULT.builder().setHeader(headers.toArray(new String[0])).build())) {
-            for (Map<String, String> map : list) {
+            for (Map<String, Object> map : list) {
                 List<String> values = new ArrayList<>();
                 for (String header : headers) {
-                    values.add(map.get(header));
+                    values.add(map.get(header).toString());
                 }
                 csvPrinter.printRecord(values);
             }
@@ -206,6 +207,44 @@ public class ProjectHelper {
             log.info("解析CSV成功,共耗时:{}ms", elapsed);
         } catch (Exception e) {
             log.error("解析CSV失败 {}", e.getMessage(), e);
+        }
+    }
+
+    private final static Class<ClickHouseColumn> ClickHouseColumnClass = ClickHouseColumn.class;
+    private static Field ClickHouseColumnField;
+
+    /**
+     * 处理DateTime类型的列的默认时区
+     * @param schema      表架构
+     * @param timeZone    设置的时区
+     * @param columnNames 需要设置的列名,是表的列名,而不是对象的属性名称集合
+     */
+    public static void processTableSchemaLocalDateTimeZone(TableSchema schema, String timeZone, List<String> columnNames) {
+        if (ClickHouseColumnField == null) {
+            try {
+                ClickHouseColumnField = ClickHouseColumnClass.getDeclaredField("timeZone");
+            } catch (NoSuchFieldException e) {
+                log.error("获取ClickHouse列对象timeZone字段时出错:{}", e.getMessage(), e);
+            }
+        }
+        for (String columnName : columnNames) {
+            ClickHouseColumn col = schema.getColumnByName(columnName);
+            if (col == null) {
+                log.warn("无效的列名,columnName={}", columnName);
+                continue;
+            }
+            if (col.getDataType() != ClickHouseDataType.DateTime
+                    && col.getDataType() != ClickHouseDataType.DateTime32
+                    && col.getDataType() != ClickHouseDataType.DateTime64) {
+                log.warn("此列不是DateTime类型,不进行处理,columnName={}", columnName);
+                continue;
+            }
+            if (!ClickHouseColumnField.canAccess(col)) ClickHouseColumnField.setAccessible(true);
+            try {
+                ClickHouseColumnField.set(col, TimeZone.getTimeZone(timeZone));
+            } catch (IllegalAccessException e) {
+                log.error("设置ClickHouse列对象timeZone字段时出错:{} columnName={},timeZone={}", e.getMessage(), columnName, timeZone, e);
+            }
         }
     }
 

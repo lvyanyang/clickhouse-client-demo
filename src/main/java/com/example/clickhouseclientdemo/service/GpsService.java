@@ -14,8 +14,9 @@ import com.clickhouse.client.api.query.QuerySettings;
 import com.clickhouse.client.api.query.Records;
 import com.clickhouse.data.ClickHouseFormat;
 import com.example.clickhouseclientdemo.entity.GpsLog;
-import com.example.clickhouseclientdemo.utils.ProjectHelper;
+import com.example.clickhouseclientdemo.entity.PflowSuccessDTO;
 import com.example.clickhouseclientdemo.utils.JsonHelper;
+import com.example.clickhouseclientdemo.utils.ProjectHelper;
 import com.fasterxml.jackson.databind.MappingIterator;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
@@ -35,17 +36,17 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class GpsService {
     private final Client client;
-    private final TableSchema gpsLogSchema;
+    private TableSchema gpsLogSchema;
     private static final String SQL = "select gps_id,cmp_name,cd_name,route_id,route_name,bus_id,bus_code,terminal_id,service_id,rev_time,terminal_time,longitude,latitude,direction,speed,secondaryplanet,created_time,resend_flag,valid_flag,milestotal " +
             "from gpslog " +
             "order by created_time desc ";
 
     public GpsService(Client client) {
         this.client = client;
-        // 获取表架构对象
-        gpsLogSchema = this.client.getTableSchema(ProjectHelper.GPS_TABLE_NAME);
-        // 注册实体类,把实体字段与表架构建立映射关系
-        this.client.register(GpsLog.class, gpsLogSchema);
+        // // 获取表架构对象
+        // gpsLogSchema = this.client.getTableSchema(ProjectHelper.GPS_TABLE_NAME);
+        // // 注册实体类,把实体字段与表架构建立映射关系
+        // this.client.register(GpsLog.class, gpsLogSchema);
     }
 
     /**
@@ -58,6 +59,37 @@ public class GpsService {
             ProjectHelper.logInsertStat(startNanoTime, response);
         } catch (Exception e) {
             log.error("写入List失败 {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 将List集合写入ClickHouse
+     */
+    public void insertPflowSuccessDTO(List<PflowSuccessDTO> list) {
+        var tableName = "T_PFLOW_MATCHED";
+        var schema = this.client.getTableSchema(tableName);
+        ProjectHelper.processTableSchemaLocalDateTimeZone(schema, "Asia/Shanghai", List.of("ykt_up_time", "ad_time"));
+        this.client.register(PflowSuccessDTO.class, schema);
+        long startNanoTime = System.nanoTime();
+        log.info("开始将List集合写入到ClickHouse");
+        try (InsertResponse response = client.insert(tableName, list).get(10, TimeUnit.SECONDS)) {
+            ProjectHelper.logInsertStat(startNanoTime, response);
+        } catch (Exception e) {
+            log.error("写入List失败 {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 将CSV文件数据写入ClickHouse
+     */
+    public void insertCSVString(String csvStr) {
+        long startNanoTime = System.nanoTime();
+        //把csv字符串包装成输入流
+        InputStream inputStream = new ByteArrayInputStream(csvStr.getBytes(StandardCharsets.UTF_8));
+        try (InsertResponse response = client.insert("ttt", inputStream, ClickHouseFormat.CSVWithNames).get(10, TimeUnit.SECONDS)) {
+            ProjectHelper.logInsertStat(startNanoTime, response);
+        } catch (Exception e) {
+            log.error("写入CSV失败 {}", e.getMessage(), e);
         }
     }
 
@@ -184,7 +216,7 @@ public class GpsService {
         var sql = SQL + "limit 100";
         log.info("开始查询数据:{}", sql);
         long startNanoTime = System.nanoTime();
-        try (QueryResponse response = client.query(sql, new QuerySettings().setFormat(ClickHouseFormat.JSONEachRow)).get(10,TimeUnit.SECONDS);
+        try (QueryResponse response = client.query(sql, new QuerySettings().setFormat(ClickHouseFormat.JSONEachRow)).get(10, TimeUnit.SECONDS);
              MappingIterator<GpsLog> jsonIter = JsonHelper.getObjectMapper().readerFor(GpsLog.class).readValues(response.getInputStream())) {
             // MappingIterator<JsonNode> jsonIter = JsonHelper.getObjectMapper().readerFor(JsonNode.class).readValues(response.getInputStream()))
             List<GpsLog> list = new ArrayList<>();

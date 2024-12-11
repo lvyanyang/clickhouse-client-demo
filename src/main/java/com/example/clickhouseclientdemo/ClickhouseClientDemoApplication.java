@@ -22,7 +22,7 @@ public class ClickhouseClientDemoApplication {
         String username = properties.getUsername();
         String password = properties.getPassword();
         String database = properties.getDatabase();
-        String timeZone = properties.getTimezone();
+        // String timeZone = properties.getTimezone();
         boolean httpCompression = properties.getHttpCompression();
         int asyncInsert = properties.getAsyncInsert();
         return new Client.Builder()
@@ -40,7 +40,9 @@ public class ClickhouseClientDemoApplication {
                 .setClientNetworkBufferSize(500_000)
                 .useHttpCompression(httpCompression)
                 .setExecutionTimeout(10, ChronoUnit.SECONDS)
-                .setServerTimeZone(timeZone)
+                // .useServerTimeZone(false)
+                // .setServerTimeZone("Asia/Shanghai")
+                // .useTimeZone("Asia/Shanghai")
                 .serverSetting("async_insert", String.valueOf(asyncInsert))
                 .allowBinaryReaderToReuseBuffers(true) // using buffer pool for binary reader
                 .build();
